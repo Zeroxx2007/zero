@@ -1,32 +1,27 @@
-// bot.js
-const { makeWASocket, MessageType, useSingleFileAuthState } = require('@adiwajshing/baileys');
+// bot.js (con sintaxis ES6)
+import { makeWASocket, useSingleFileAuthState } from '@adiwajshing/baileys';
+import qrcode from 'qrcode-terminal';
+
 const { state, saveState } = useSingleFileAuthState('./session.json');
-const qrcode = require('qrcode-terminal');
-const config = require('./config');
 
 async function startBot() {
   const conn = makeWASocket({
     auth: state,
-    printQRInTerminal: true // Muestra el QR directamente en la terminal
+    printQRInTerminal: true
   });
 
-  // Guardar sesión automáticamente
   conn.ev.on('creds.update', saveState);
 
-  // Escuchar mensajes
-  conn.ev.on('messages.upsert', async ({ messages }) => {
-    const m = messages[0];
-    if (!m.message) return;
+  conn.ev.on('messages.upsert', async (message) => {
+    const m = message.messages[0];
+    if (!m) return;
 
     const sender = m.key.remoteJid;
-    const content = m.message.conversation || m.message.extendedTextMessage?.text;
+    const content = m.message?.conversation || m.message?.extendedTextMessage?.text;
 
-    // Ejemplo de comando
-    if (content?.startsWith(config.prefix + 'ping')) {
+    if (content?.startsWith('!ping')) {
       await conn.sendMessage(sender, { text: '¡Pong! 🏓' });
     }
-
-    // Añade más comandos aquí
   });
 }
 
