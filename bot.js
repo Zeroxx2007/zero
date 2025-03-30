@@ -1,44 +1,33 @@
 // bot.js
-const { WAConnection: _WAConnection } = require('@adiwajshing/baileys');
-const { MessageType } = require('@adiwajshing/baileys');
+const { makeWASocket, MessageType, useSingleFileAuthState } = require('@adiwajshing/baileys');
+const { state, saveState } = useSingleFileAuthState('./session.json');
 const qrcode = require('qrcode-terminal');
-const fs = require('fs');
 const config = require('./config');
 
-const WAConnection = _WAConnection;
-
 async function startBot() {
-  const conn = new WAConnection();
-  conn.logger.level = 'warn';
-
-  // Generar QR
-  conn.on('qr', (qr) => {
-    qrcode.generate(qr, { small: true });
+  const conn = makeWASocket({
+    auth: state,
+    printQRInTerminal: true // Muestra el QR directamente en la terminal
   });
 
-  // Conectar
-  await conn.connect({ timeoutMs: 30_000 });
-  console.log('Bot conectado!');
-  fs.writeFileSync('./session.json', JSON.stringify(conn.base64EncodedAuthInfo(), null, '\t'));
+  // Guardar sesión automáticamente
+  conn.ev.on('creds.update', saveState);
 
   // Escuchar mensajes
-  conn.on('chat-update', async (message) => {
-    if (!message.hasNewMessage) return;
-    const m = message.messages.all()[0];
+  conn.ev.on('messages.upsert', async ({ messages }) => {
+    const m = messages[0];
     if (!m.message) return;
 
-    const content = m.message.conversation || m.message.extendedTextMessage?.text;
     const sender = m.key.remoteJid;
+    const content = m.message.conversation || m.message.extendedTextMessage?.text;
 
     // Ejemplo de comando
-    if (content.startsWith('!ping')) {
-      await conn.sendMessage(sender, '¡Pong! 🏓', MessageType.text);
+    if (content?.startsWith(config.prefix + 'ping')) {
+      await conn.sendMessage(sender, { text: '¡Pong! 🏓' });
     }
 
     // Añade más comandos aquí
   });
 }
 
-// Autenticación previa (si existe session.json)
-const authInfo = fs.existsSync('./session.json') ? JSON.parse(fs.readFileSync('./session.json', 'utf-8')) : {};
-startBot(authInfo);
+startBot();
