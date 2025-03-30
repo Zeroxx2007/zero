@@ -1,7 +1,7 @@
 {
   "name": "zero-bot",
   "version": "1.0.0",
-  "type": "module",  // ← Agrega esta línea
+  "type": "module", 
   "dependencies": {
     "@adiwajshing/baileys": "^4.0.0",
     "qrcode-terminal": "^0.12.0"
